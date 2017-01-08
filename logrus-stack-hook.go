@@ -11,10 +11,11 @@ import (
 // Set levels to callerLevels for which "caller" value may be set, providing a
 // single frame of stack. Set levels to stackLevels for which "stack" value may
 // be set, providing the full stack (minus logrus).
-func NewHook(callerLevels []logrus.Level, stackLevels []logrus.Level) LogrusStackHook {
+func NewHook(callerLevels []logrus.Level, stackLevels []logrus.Level, ignore []string) LogrusStackHook {
 	return LogrusStackHook{
 		CallerLevels: callerLevels,
-		StackLevels: stackLevels,
+		StackLevels:  stackLevels,
+		Ignore:       ignore,
 	}
 }
 
@@ -23,7 +24,7 @@ func NewHook(callerLevels []logrus.Level, stackLevels []logrus.Level) LogrusStac
 func StandardHook() LogrusStackHook {
 	return LogrusStackHook{
 		CallerLevels: logrus.AllLevels,
-		StackLevels: []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel},
+		StackLevels:  []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel},
 	}
 }
 
@@ -35,7 +36,11 @@ type LogrusStackHook struct {
 
 	// Set levels to StackLevels for which "stack" value may be set,
 	// providing the full stack (minus logrus).
-	StackLevels  []logrus.Level
+	StackLevels []logrus.Level
+
+	// Set packages to be excluded from "caller" stack. Useful when,
+	// externalising logger
+	Ignore []string
 }
 
 // Levels provides the levels to filter.
@@ -63,7 +68,8 @@ func (hook LogrusStackHook) Fire(entry *logrus.Entry) error {
 	// certain hoops. e.g. http handler in a separate package.
 	// This is a workaround.
 	for _, frame := range _frames {
-		if !strings.Contains(frame.File, "github.com/Sirupsen/logrus") {
+		if !strings.Contains(frame.File, "github.com/Sirupsen/logrus") &&
+			!in_array(frame.File, hook.Ignore) {
 			frames = append(frames, frame)
 		}
 	}
@@ -85,6 +91,18 @@ func (hook LogrusStackHook) Fire(entry *logrus.Entry) error {
 			}
 		}
 	}
-
 	return nil
+}
+
+// Helper to identify whether value exists in array
+func in_array(str string, arr []string) bool {
+	if arr == nil {
+		return false
+	}
+	for _, val := range arr {
+		if strings.Contains(str, val) {
+			return true
+		}
+	}
+	return false
 }

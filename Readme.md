@@ -26,8 +26,18 @@ Same as:
 callerLevels := logrus.AllLevels
 stackLevels := []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel}
 
-logrus.AddHook(logrus_stack.NewHook(callerLevels, stackLevels))
+logrus.AddHook(logrus_stack.NewHook(callerLevels, stackLevels, nil))
 ```
+
+additionally, packages can be excluded from the caller levels:
+```go
+callerLevels := logrus.AllLevels
+stackLevels := []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel}
+ignore := []string{"loggers/logger"}
+
+logrus.AddHook(logrus_stack.NewHook(callerLevels, stackLevels, ignore))
+```
+
 
 ## Example
 
